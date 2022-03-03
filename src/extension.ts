@@ -33,7 +33,8 @@ async function createFolder() {
     vscode.window.showInformationMessage(`Creating configuration files at '${state.path}`);
     let base = vscode.workspace.workspaceFolders![0].uri;
     await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(base, state.path));
-	await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(base, state.path, "corpus"));
+	await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(base, state.path, "fuzz-corpus"));
+	await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(base, state.path, "seeds"));
     let enc = new TextEncoder();
     let contents = enc.encode(JSON.stringify(state));
     await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(base, state.path, "config.json"), contents);

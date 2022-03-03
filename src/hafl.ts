@@ -71,7 +71,8 @@ export async function startLibFuzzerTarget(haflPath: Uri, _binaryPath: Uri) {
     let [workDir, binaryPath, soutLog, serrLog] = await createWorkingDirectory(haflPath, _binaryPath);
 
     // Libfuzzer targets are started by just executing them
-    const proc = spawn(binaryPath.fsPath, [Uri.joinPath(haflPath, "corpus").fsPath], { cwd: workDir.fsPath });
+    let seedPaths = [Uri.joinPath(haflPath, "fuzz-corpus").fsPath, Uri.joinPath(haflPath, "seeds").fsPath];
+    let proc = spawn(binaryPath.fsPath, seedPaths, { cwd: workDir.fsPath });
 
     proc.stdout.on('data', (data) => {
         soutLog.write(data);
