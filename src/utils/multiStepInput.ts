@@ -3,7 +3,7 @@ import { QuickPickItem, window, Disposable, CancellationToken, QuickInputButton,
 export interface State {
 	type: string;
 	path: string;
-	configurePath: string;
+	binaryName: string;
 }
 
 export async function getConfigSettings(): Promise<State> {
@@ -33,16 +33,16 @@ export async function getConfigSettings(): Promise<State> {
 			validate: async (name) => undefined,
 			shouldResume: shouldResume
 		});
-		return (input: MultiStepInput) => inputConfigureFilePath(input, state);
+		return (input: MultiStepInput) => inputBinaryName(input, state);
 	}
 
-    async function inputConfigureFilePath(input: MultiStepInput, state: Partial<State>) {
-		state.configurePath = await input.showInputBox({
+	async function inputBinaryName(input: MultiStepInput, state: Partial<State>) {
+		state.binaryName = await input.showInputBox({
 			title,
-			step: 2 ,
+			step: 3,
 			totalSteps: 3,
-			value: state.configurePath || '',
-			prompt: 'Input the path to the configure script',
+			value: state.binaryName || '',
+			prompt: 'Input the name of the binary to fuzz',
 			validate: async (name) => undefined,
 			shouldResume: shouldResume
 		});
