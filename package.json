@@ -11,7 +11,8 @@
 	],
 	"activationEvents": [
         "onCommand:hafl.createFolder",
-		"onCommand:hafl.runFuzzer"
+		"onCommand:hafl.runFuzzer",
+		"onCommand:hafl.buildAndRunFuzzer"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -22,7 +23,11 @@
 			}, 
 			{
 				"command": "hafl.runFuzzer",
-				"title": "hafl:Start the fuzzer"
+				"title": "hafl: Start the fuzzer with latest target"
+			},
+			{
+				"command": "hafl.buildAndRunFuzzer",
+				"title": "hafl: Rebuild the target and run the fuzzer"
 			}
 		]
 	},

@@ -6,16 +6,21 @@ import { getConfigSettings, State} from './utils/multiStepInput';
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Starting hafl');
 
-	let d1 = vscode.commands.registerCommand('hafl.createFolder', () => {
-		createFolder();
+	let d1 = vscode.commands.registerCommand('hafl.createFolder', async () => {
+		await createFolder();
 	});
 
-	let d2 = vscode.commands.registerCommand('hafl.runFuzzer', () => {
-		runFuzzer();
+	let d2 = vscode.commands.registerCommand('hafl.runFuzzer', async () => {
+		await runFuzzer();
+	});
+
+	let d3 = vscode.commands.registerCommand('hafl.buildAndRunFuzzer', async () => {
+		await buildAndRunFuzzer();
 	});
 
 	context.subscriptions.push(d1);
 	context.subscriptions.push(d2);
+	context.subscriptions.push(d3);
 }
 
 // this method is called when your extension is deactivated
@@ -37,21 +42,35 @@ async function createFolder() {
     console.log("done");
 }
 
-async function runFuzzer() {
+async function buildAndRunFuzzer() {
 	// wohoo hard code everything
     let base = vscode.workspace.workspaceFolders![0].uri;
 	let haflPath = vscode.Uri.joinPath(base, "/.hafl");
     let buildScript = vscode.Uri.joinPath(haflPath, "/build.sh");
 
-    if (await hafl.buildTarget(base, buildScript)) {
-		let binaryPath = vscode.Uri.joinPath(haflPath, "fuzz-target"); // could be whatever, probably read binary-name from config
-		let type = "libFuzzer";
+	try {
+		await hafl.buildTarget(base, buildScript);
+		await runFuzzer();
+	} catch {
+		vscode.window.showErrorMessage("Fuzzer failed to start");
+	};
+}
 
+async function runFuzzer () {
+	// wohoo hard code everything
+    let base = vscode.workspace.workspaceFolders![0].uri;
+	let haflPath = vscode.Uri.joinPath(base, "/.hafl");
+
+    let binaryPath = vscode.Uri.joinPath(haflPath, "fuzz-target"); // could be whatever, probably read binary-name from config
+	let type = "libFuzzer";
+
+	try {
 		if (type === "libFuzzer") {
 			await hafl.startLibFuzzerTarget(haflPath, binaryPath);
-			// hafl.startLibFuzzerTarget(base, buildScript);
 		} else {
-			hafl.startAFLTarget(binaryPath);
+			await hafl.startAFLTarget(binaryPath);
 		} 
-	}
+	} catch {
+		vscode.window.showErrorMessage("Fuzzer failed to start");
+	};
 }

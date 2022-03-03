@@ -1,19 +1,28 @@
 import { Uri, window, workspace } from "vscode";
 import { spawn } from "child_process";
-import { stdout } from "process";
-import * as util from "util";
 import * as fs from "fs";
 
-export async function buildTarget(basePath: Uri, buildPath: Uri): Promise<boolean> {
-    let execFile = util.promisify(require('child_process').execFile);
-    try {
-        let out = await execFile(buildPath.fsPath, {cwd: basePath.fsPath});
-        console.log(`Build log: ${out.stdout} ${out.stderr}`);
-        return true;
-    } catch (e) {
-        window.showInformationMessage(`Failed to build: ${e}`);
-        return false;
-    }
+// currently relies on build.sh resulting in a binary called fuzz-target in ./.hafl
+export async function buildTarget(basePath: Uri, buildPath: Uri): Promise<void> {
+    return new Promise((resolve, reject) => {
+        window.showInformationMessage("Building fuzz target (via build.sh)");
+        console.log("Starting build");
+        let build = spawn(buildPath.fsPath, {cwd: basePath.fsPath});
+        build.on('error', (err) => {
+            window.showInformationMessage(`Failed to build: ${err}`);
+            reject();
+        });
+
+        build.stdout.on('data', (data) => {
+            console.log(`${data}`);
+        });
+
+        build.stderr.on('data', (data) => {
+            console.log(`${data}`);
+        });
+
+        build.on('close', (code) => { resolve(); });
+    });
 }
 
 export function startAFLTarget(targetPath: Uri) {
@@ -34,7 +43,7 @@ async function createWorkingDirectory(haflPath: Uri, binaryPath: Uri): Promise<[
     let workDir = Uri.joinPath(haflPath, folderName);
     await workspace.fs.createDirectory(workDir);
     let movedBinary = Uri.joinPath(workDir, "fuzz-target");
-    await workspace.fs.rename(binaryPath, movedBinary);
+    await workspace.fs.copy(binaryPath, movedBinary);
     
     let soutPath = Uri.joinPath(workDir, "fuzzer.log");
     await workspace.fs.writeFile(soutPath, new Uint8Array);
@@ -58,10 +67,11 @@ async function createWorkingDirectory(haflPath: Uri, binaryPath: Uri): Promise<[
 }
 
 export async function startLibFuzzerTarget(haflPath: Uri, _binaryPath: Uri) {
+    console.log("Starting libfuzzer target");
     let [workDir, binaryPath, soutLog, serrLog] = await createWorkingDirectory(haflPath, _binaryPath);
 
     // Libfuzzer targets are started by just executing them
-    const proc = spawn(binaryPath.fsPath, { cwd: workDir.fsPath });
+    const proc = spawn(binaryPath.fsPath, [Uri.joinPath(haflPath, "corpus").fsPath], { cwd: workDir.fsPath });
 
     proc.stdout.on('data', (data) => {
         soutLog.write(data);
