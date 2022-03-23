@@ -18,9 +18,14 @@ export function activate(context: vscode.ExtensionContext) {
 		await buildAndRunFuzzer();
 	});
 
+	let d4 = vscode.commands.registerCommand(`hafl.stopFuzzer`, () => {
+		hafl.stopLibFuzzerTarget();
+	});
+
 	context.subscriptions.push(d1);
 	context.subscriptions.push(d2);
 	context.subscriptions.push(d3);
+	context.subscriptions.push(d4);
 }
 
 // this method is called when your extension is deactivated
@@ -47,10 +52,10 @@ async function buildAndRunFuzzer() {
 	// wohoo hard code everything
     let base = vscode.workspace.workspaceFolders![0].uri;
 	let haflPath = vscode.Uri.joinPath(base, "/.hafl");
-    let buildScript = vscode.Uri.joinPath(haflPath, "/build.sh");
 
 	try {
-		await hafl.buildTarget(base, buildScript);
+		await hafl.buildTarget(base, vscode.Uri.joinPath(haflPath, "/build.sh"), "fuzz target");
+		await hafl.buildTarget(base, vscode.Uri.joinPath(haflPath, "/build_w_cov.sh"), "coverage target");
 		await runFuzzer();
 	} catch {
 		vscode.window.showErrorMessage("Fuzzer failed to start");
@@ -74,4 +79,5 @@ async function runFuzzer () {
 	} catch {
 		vscode.window.showErrorMessage("Fuzzer failed to start");
 	};
+	console.log("Startup finished");
 }
