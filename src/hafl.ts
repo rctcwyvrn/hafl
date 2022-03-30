@@ -32,6 +32,8 @@ export function startAFLTarget(targetPath: Uri) {
 
 }
 
+export var currentWorkDir: Uri;
+
 async function createWorkingDirectory(haflPath: Uri, binaryPath: Uri): Promise<[Uri, Uri, fs.WriteStream, fs.WriteStream]> {
     let date = new Date();
     let folderName = date.getFullYear() +
@@ -45,6 +47,9 @@ async function createWorkingDirectory(haflPath: Uri, binaryPath: Uri): Promise<[
 
     let workDir = Uri.joinPath(haflPath, folderName);
     await workspace.fs.createDirectory(workDir);
+
+    currentWorkDir = workDir;
+
     let movedBinary = Uri.joinPath(workDir, "fuzz-target");
     await workspace.fs.copy(binaryPath, movedBinary);
 
@@ -52,6 +57,9 @@ async function createWorkingDirectory(haflPath: Uri, binaryPath: Uri): Promise<[
     await workspace.fs.writeFile(soutPath, new Uint8Array);
     let serrPath = Uri.joinPath(workDir, "error.log");
     await workspace.fs.writeFile(serrPath, new Uint8Array);
+
+    await workspace.fs.createDirectory(Uri.joinPath(workDir, "cov"));
+    await workspace.fs.createDirectory(Uri.joinPath(workDir, "cov-tmp"));
 
     let soutLog = fs.createWriteStream(soutPath.fsPath);
     let serrLog = fs.createWriteStream(Uri.joinPath(workDir, "error.log").fsPath);
@@ -125,29 +133,30 @@ export async function startLibFuzzerCov(workDir: Uri, haflPath: Uri, _covPath: U
     await workspace.fs.copy(_covPath, movedCov);
 
     let covFolder = Uri.joinPath(workDir, "cov/");
-    let profDataFile = Uri.joinPath(workDir, "cov.profdata");
-    let lcovFile = Uri.joinPath(workDir, "lcov.info");
+    let covTmp = Uri.joinPath(workDir, "cov-tmp/");
+    let mainProfDataFile = Uri.joinPath(workDir, "cov.profdata");
+    let mainLcovFile = Uri.joinPath(workDir, "lcov.info");
 
     // start a timer that creates coverage files occasionally
     let covMaker = new CoverageMaker();
-    covMaker.on('new_cov', (self: CoverageMaker) => {
+    covMaker.on('new_cov', async (self: CoverageMaker) => {
         self.i += 1;
         if (self.i >= 100) {
             self.i = 0;
             console.log(`Merging coverage`);
             try {
-                execSync(`llvm-profdata merge -sparse ${covFolder.fsPath}/* -o ${profDataFile.fsPath}`);
+                execSync(`llvm-profdata merge -sparse ${covFolder.fsPath}/* -o ${mainProfDataFile.fsPath}`);
                 console.log(`Exporting`);
-                let stdout = execSync(`llvm-cov export --format=lcov ${movedCov.fsPath} -instr-profile=${profDataFile.fsPath}`);
+                let stdout = execSync(`llvm-cov export --format=lcov ${movedCov.fsPath} -instr-profile=${mainProfDataFile.fsPath}`);
                 if (typeof stdout === "string") {
                     let enc = new TextEncoder();
-                    workspace.fs.writeFile(lcovFile, enc.encode(stdout));
+                    await workspace.fs.writeFile(mainLcovFile, enc.encode(stdout));
                 } else {
-                    workspace.fs.writeFile(lcovFile, stdout);
+                    await workspace.fs.writeFile(mainLcovFile, stdout);
                 }
-                
+
                 console.log(`Summary`);
-                let summary = execSync(`llvm-cov report ${movedCov.fsPath} -instr-profile=${profDataFile.fsPath}`)
+                let summary = execSync(`llvm-cov report ${movedCov.fsPath} -instr-profile=${mainProfDataFile.fsPath}`)
                 let lines = summary.toString().split("\n");
                 console.log(lines[lines.length - 2]);
             } catch (e) {
@@ -165,11 +174,29 @@ export async function startLibFuzzerCov(workDir: Uri, haflPath: Uri, _covPath: U
         let parts = uri.toString().split("/");
         let filename = parts[parts.length - 1];
         let profFilePath = Uri.joinPath(covFolder, filename + ".profraw");
+
+        let profDataPath = Uri.joinPath(covTmp, filename + ".profdata");
+        let lcovPath = Uri.joinPath(covTmp, filename + ".lcov");
+
         // console.log (`Create: ${uri.fsPath} | Making cov file ${profFilePath.fsPath}`); 
         let proc = spawn(movedCov.fsPath, [uri.fsPath], { env: { LLVM_PROFILE_FILE: profFilePath.fsPath } });
         proc.on('close', async (code) => {
-            // console.log(`Done generating ${profFilePath.fsPath}`);
-            covMaker.emitCov();
+            try {
+                // let delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+                // await delay(10000);
+
+                execSync(`llvm-profdata merge -sparse ${profFilePath.fsPath} -o ${profDataPath.fsPath}`);
+                let stdout = execSync(`llvm-cov export --format=lcov ${movedCov.fsPath} -instr-profile=${profDataPath.fsPath}`);
+                if (typeof stdout === "string") {
+                    let enc = new TextEncoder();
+                    await workspace.fs.writeFile(lcovPath, enc.encode(stdout));
+                } else {
+                    await workspace.fs.writeFile(lcovPath, stdout);
+                }
+                covMaker.emitCov();
+            } catch (e) {
+                console.log(`Failed to create coverage ${e}`);
+            }
         });
     });
 }

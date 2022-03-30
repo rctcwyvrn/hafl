@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as hafl from './hafl';
+import * as driller from './driller';
 import { TextEncoder } from 'util';
 import { getConfigSettings, State} from './utils/multiStepInput';
 
@@ -22,10 +23,15 @@ export function activate(context: vscode.ExtensionContext) {
 		hafl.stopLibFuzzerTarget();
 	});
 
+	let d5 = vscode.commands.registerCommand(`hafl.flipBranch`, async () => {
+		await driller.flipBranch();
+	});
+
 	context.subscriptions.push(d1);
 	context.subscriptions.push(d2);
 	context.subscriptions.push(d3);
 	context.subscriptions.push(d4);
+	context.subscriptions.push(d5);
 }
 
 // this method is called when your extension is deactivated
