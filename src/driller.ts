@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import * as hafl from './hafl';
-import { ripGrep as rg } from 'ripgrep-js';
-import { execSync, spawn, spawnSync } from 'child_process';
-import { SlowBuffer } from 'buffer';
+import { execSync } from 'child_process';
 
 export async function flipBranch() {
     let editor = vscode.window.activeTextEditor!;
@@ -29,21 +27,7 @@ export async function flipBranch() {
     console.log(args);
     console.log("rg " + args.join(" "));
 
-    // cursed
-    // var childProcess = require("child_process");
-    // var oldSpawn = childProcess.spawnSync;
-    // function mySpawn(this: any) {
-    //     console.log('spawn called');
-    //     console.log(arguments);
-    //     var result = oldSpawn.apply(this, arguments);
-    //     return result;
-    // }
-    // childProcess.spawnSync = mySpawn;
-
     try {
-        // let result = spawnSync("rg", args);
-        // console.log(result);
-        // console.log(result.stdout.toString());
         let result = execSync("rg " + args.join(" "));
         let matches = result.toString().split("\n").filter((s) => s.length > 0).map((match) => match.split("/n").pop()!.split(":")[0]);
         console.log(matches);
@@ -56,4 +40,6 @@ export async function flipBranch() {
     } catch (e) {
         console.log("No match");
     }
+
+    // docker run -v $(pwd)/.hafl:/hafl -e PYTHONUNBUFFERED=1 driller:latest /hafl/driller-target /hafl/fuzz-corpus/ffa3147a5aecb88977af2805c6a2da67fb8dcae1 
 } 
