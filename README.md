@@ -2,7 +2,7 @@
 
 A vscode extension for managing and interacting with fuzz sessions
 
-# Current features
+## Current features
 - Launching a libfuzzer session
 
 `insert image here`
@@ -27,7 +27,7 @@ Note: Again a hardcoded path, `.hafl/build_w_cov.sh`
 
 Collects the inputs in the fuzz corpus that reach the selected line or branch. Currently this is only displayed in the debug terminal, ideally this will pop open a new window or something like that
 
-# Planned features
+## Planned features
 - Symbolic analysis to flip branches
 
 See `docs/symbolic_exec_and_human_input.md`
