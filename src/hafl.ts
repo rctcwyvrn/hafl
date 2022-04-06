@@ -156,7 +156,7 @@ export async function startLibFuzzerCov(workDir: Uri, haflPath: Uri, _covPath: U
                 }
 
                 console.log(`Summary`);
-                let summary = execSync(`llvm-cov report ${movedCov.fsPath} -instr-profile=${mainProfDataFile.fsPath}`)
+                let summary = execSync(`llvm-cov report ${movedCov.fsPath} -instr-profile=${mainProfDataFile.fsPath}`);
                 let lines = summary.toString().split("\n");
                 console.log(lines[lines.length - 2]);
             } catch (e) {
