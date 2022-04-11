@@ -29,12 +29,11 @@ Collects the inputs in the fuzz corpus that reach the selected line or branch. C
 
 ## Planned features
 - Symbolic analysis to flip branches
-
-See `docs/symbolic_exec_and_human_input.md`
+  - See `docs/symbolic_exec_and_human_input.md`
 
 - A summary component/webview that displays the stats from the fuzzer as well as other relevant information on the fuzzer's progress
   - Examples: Code coverage, current frontiers, fuzzer warnings
 
-- An actual working configuration file (variable paths for build scripts and binary names)
+- An actual working configuration file (variable paths for build scripts and binary names instead of hardcoded ones)
 - Incorporate a code coverage displaying project into hafl instead of having it be a seperate extension
 - Automatic generation of build scripts/Providing automated scripts to create build scripts for `cmake` or `meson` projects
